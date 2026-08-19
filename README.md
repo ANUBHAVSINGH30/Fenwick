@@ -134,7 +134,7 @@ Each phase's before/after results are documented in `/docs/results`.
 
 ## Status
 
-🚧 **In active development** — follow along on [Twitter/X](https://x.com/anubhavSingh) for build-log updates as each phase ships.
+🚧 **In active development** — follow along on [Twitter/X](https://x.com/anubhavSingh_30) for build-log updates as each phase ships.
 
 ---
 
