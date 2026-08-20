@@ -1,7 +1,15 @@
-import { PrismaClient, SeatStatus } from "../src/generated/prisma";
+import { PrismaClient } from "../src/generated/prisma/client";
+import { SeatStatus } from "../src/generated/prisma/enums";
+import { PrismaPg } from "@prisma/adapter-pg";
 import { faker } from "@faker-js/faker";
 
-const prisma = new PrismaClient();
+const adapter = new PrismaPg({
+  connectionString: process.env.DATABASE_URL,
+});
+
+const prisma = new PrismaClient({
+  adapter,
+});
 
 async function main() {
   console.log("🌱 Starting seed...");
