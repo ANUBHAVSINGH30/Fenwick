@@ -51,6 +51,7 @@ async function main() {
 
   for (let i = 0; i < 10; i++) {
     const venue = faker.helpers.arrayElement(venues);
+    const user = faker.helpers.arrayElement(users);
 
     const event = await prisma.event.create({
       data: {
@@ -70,6 +71,7 @@ async function main() {
           fractionDigits: 2,
         }),
         venueId: venue.id,
+        userId: user.id,
       },
     });
 

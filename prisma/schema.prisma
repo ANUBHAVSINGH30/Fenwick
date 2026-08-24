@@ -19,6 +19,7 @@ model User {
   emailVerified DateTime?
   image         String?
 
+  events Event[]
   bookings Booking[]
 
   createdAt DateTime @default(now())
@@ -50,6 +51,9 @@ model Event {
   date        DateTime
   price       Decimal  @db.Decimal(10, 2)
 
+  userId      String
+  user        User @relation(fields: [userId], references: [id])
+
   venueId String
   venue   Venue @relation(fields: [venueId], references: [id])
 
@@ -61,6 +65,7 @@ model Event {
   @@index([category])
   @@index([date])
   @@index([venueId])
+  @@index([userId])
 }
 
 model Seat {

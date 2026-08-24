@@ -3,8 +3,8 @@ import { PrismaClient } from "@/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Decimal } from "@prisma/client/runtime/client";
 import { eventSchema } from "../../../../lib/event.schema";
-import { success, ZodError } from "zod";
-import { fa } from "@faker-js/faker";
+import { ZodError } from "zod";
+import { getCUrrentUser } from "../../../../lib/auth";
 
 const adapter = new PrismaPg({
     connectionString: process.env.DATABASE_URL,
@@ -52,6 +52,17 @@ export async function GET(res: NextResponse,) {
 //POST events
 export async function POST( req: NextRequest) {
     try{
+        //check if the user has a valid sessionID
+        const user = await getCUrrentUser(req);
+
+        //then check if...
+        if(!user){
+            return NextResponse.json({
+                success: false,
+                error: "Unauthorized"
+            }, {status: 401})
+        }
+
         const body : CreateEventBody = await req.json();
 
          // Runtime validation
@@ -66,7 +77,8 @@ export async function POST( req: NextRequest) {
 
         if (!venue) {
             return NextResponse.json({ success: false, error: "Venue not found" }, { status: 404 });
-        }
+        };
+
 
         // Create the event
         const newEvent = await prisma.event.create({
@@ -76,7 +88,8 @@ export async function POST( req: NextRequest) {
                 category: validateData.category,
                 date: new Date(validateData.date),
                 price: validateData.price,
-                venueId: validateData.venueId
+                venueId: validateData.venueId,
+                userId: user.id
             }
         })
         return NextResponse.json({success: true, data: newEvent, message: "Event created successfully"}, {status: 201});
