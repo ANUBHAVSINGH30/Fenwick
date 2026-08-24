@@ -2,6 +2,7 @@ import { PrismaClient } from "../src/generated/prisma/client";
 import { SeatStatus } from "../src/generated/prisma/enums";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { faker } from "@faker-js/faker";
+import bcrypt from "bcryptjs";
 
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL,
@@ -15,12 +16,14 @@ async function main() {
   console.log("🌱 Starting seed...");
 
   // Create users
+  const passwordHash = await bcrypt.hash("Password123!", 12);
   const users = await Promise.all(
     Array.from({ length: 5 }, () =>
       prisma.user.create({
         data: {
           name: faker.person.fullName(),
           email: faker.internet.email(),
+          passwordHash
         },
       }),
     ),

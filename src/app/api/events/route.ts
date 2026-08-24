@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Decimal } from "@prisma/client/runtime/client";
+import { eventSchema } from "../../../../lib/event.schema";
+import { success, ZodError } from "zod";
+import { fa } from "@faker-js/faker";
 
 const adapter = new PrismaPg({
     connectionString: process.env.DATABASE_URL,
@@ -20,6 +23,8 @@ interface CreateEventBody {
     venueId: string
 }
 
+
+//GET events
 export async function GET(res: NextResponse,) {
     try{
 
@@ -37,54 +42,64 @@ export async function GET(res: NextResponse,) {
         {status: 200});
     
     }catch(error){
-        return NextResponse.json({error}, {status: 500});
+        console.error("GET /api/events error:", error);
+        return NextResponse.json({success: false, error: "Internal server error"}, {status: 500});
     }
 };
 
-export async function POST( req: NextRequest, body: CreateEventBody) {
+
+
+//POST events
+export async function POST( req: NextRequest) {
     try{
         const body : CreateEventBody = await req.json();
 
-        if (
-            !body.title ||
-            !body.date ||
-            !body.category ||
-            body.price == null ||
-            !body.description ||
-            !body.venueId
-        ){
-            return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
-        }
+         // Runtime validation
+        const validateData = eventSchema.parse(body);
 
-        console.log("before venue")
+        // Check that the venue exists
         const venue = await prisma.venue.findUnique({
             where: {
-                id: body.venueId
+                id: validateData.venueId
             }
         });
-        console.log("after venue")
 
         if (!venue) {
-            return NextResponse.json({ error: "Venue not found" }, { status: 404 });
+            return NextResponse.json({ success: false, error: "Venue not found" }, { status: 404 });
         }
 
-        console.log("before event")
+        // Create the event
         const newEvent = await prisma.event.create({
                 data: {
-                title: body.title,
-                description: body.description,
-                category: body.category,
-                date: new Date(body.date),
-                price: body.price,
-                venueId: body.venueId
+                title: validateData.title,
+                description: validateData.description,
+                category: validateData.category,
+                date: new Date(validateData.date),
+                price: validateData.price,
+                venueId: validateData.venueId
             }
         })
-        console.log("after event")
-
-        return NextResponse.json({success: true, data: newEvent}, {status: 201});
+        return NextResponse.json({success: true, data: newEvent, message: "Event created successfully"}, {status: 201});
 
     }catch(error){
-        const message = error instanceof Error ? error.message : "something went wrong";
-        return NextResponse.json({error: message}, {status: 500})
+
+        // Client sent invalid data
+        if(error instanceof ZodError) {
+            return NextResponse.json({
+                success: false,
+                error: "Invalid event data",
+                detail: error.issues
+            }, {status: 400})
+        };
+
+        //unexpected server error
+        console.error("POST /api/events error:", error);
+        return NextResponse.json(
+            {
+                success: false,
+                error: "Internal server error",
+            },
+            { status: 500 }
+        );
     }
 }
