@@ -3,6 +3,7 @@ import { SeatStatus } from "../src/generated/prisma/enums";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { faker } from "@faker-js/faker";
 import bcrypt from "bcryptjs";
+import { UserRole } from "../src/generated/prisma/enums";
 
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL,
@@ -17,17 +18,52 @@ async function main() {
 
   // Create users
   const passwordHash = await bcrypt.hash("Password123!", 12);
-  const users = await Promise.all(
-    Array.from({ length: 5 }, () =>
-      prisma.user.create({
-        data: {
-          name: faker.person.fullName(),
-          email: faker.internet.email(),
-          passwordHash
-        },
-      }),
-    ),
-  );
+  const users = await Promise.all([
+  prisma.user.create({
+    data: {
+      name: faker.person.fullName(),
+      email: faker.internet.email(),
+      passwordHash,
+      role: UserRole.ADMIN,
+    },
+  }),
+
+  prisma.user.create({
+    data: {
+      name: faker.person.fullName(),
+      email: faker.internet.email(),
+      passwordHash,
+      role: UserRole.ORGANIZER,
+    },
+  }),
+
+  prisma.user.create({
+    data: {
+      name: faker.person.fullName(),
+      email: faker.internet.email(),
+      passwordHash,
+      role: UserRole.ORGANIZER,
+    },
+  }),
+
+  prisma.user.create({
+    data: {
+      name: faker.person.fullName(),
+      email: faker.internet.email(),
+      passwordHash,
+      role: UserRole.USER,
+    },
+  }),
+
+  prisma.user.create({
+    data: {
+      name: faker.person.fullName(),
+      email: faker.internet.email(),
+      passwordHash,
+      role: UserRole.USER,
+      },
+    }),
+  ]);
 
   console.log(`Created ${users.length} users`);
 
