@@ -9,5 +9,8 @@ const eventSchema = z.object({
     venueId: z.string()
 });
 
+export const updateEventSchema = eventSchema.partial();
+
 export type EventSchema = z.infer<typeof eventSchema>;
 export { eventSchema};
+export type UpdateEventSchema = z.infer<typeof updateEventSchema>;

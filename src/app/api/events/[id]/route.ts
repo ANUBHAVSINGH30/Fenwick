@@ -2,8 +2,6 @@ import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { getCUrrentUser } from "../../../../../lib/auth";
-import { error } from "console";
-import { Tsukimi_Rounded } from "next/font/google";
 
 const adapter = new PrismaPg({
     connectionString: process.env.DATABASE_URL,
