@@ -1,6 +1,9 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { PrismaClient } from "@/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
+import { getCUrrentUser } from "../../../../../lib/auth";
+import { error } from "console";
+import { Tsukimi_Rounded } from "next/font/google";
 
 const adapter = new PrismaPg({
     connectionString: process.env.DATABASE_URL,
@@ -50,3 +53,63 @@ export async function GET(res:NextResponse, {params}: EventProps) {
         return NextResponse.json({error: "Internal server error"}, {status: 500})
     }
 }   
+
+
+export async function DELETE(req: NextRequest, {params}: EventProps) {
+    try{
+        //check for user is logged in or not 
+        const user = await getCUrrentUser(req);
+
+        if(!user){
+            return NextResponse.json({
+                success: false,
+                error: "Unauthorized"
+            }, {status: 401});
+        }
+
+        //get the event Id from the params 
+        const {id} = await params;
+
+        //find the event
+        const event = await prisma.event.findUnique({
+            where: {
+                id,
+            },
+        });
+
+        //check if the event exist 
+        if(!event){
+            return NextResponse.json({
+                success: false,
+                error: "Event not found"
+            }, {status: 404})
+        }
+
+        //check ownership
+        if(event.userId !== user.id){
+            return NextResponse.json({
+                success: false,
+                error: "You are not allowed to delete this event"
+            }, {status: 403})
+        };
+
+        await prisma.event.delete({
+            where: {
+                id,
+            }
+        });
+
+        return NextResponse.json({
+            success: true,
+            message: "Event deleted successfully",
+        }, {status: 201});
+
+    }catch(error){
+        console.error(error);
+
+        return NextResponse.json({
+            success: false,
+            error: "Internal server error"
+        }, {status: 500})
+    }
+}
