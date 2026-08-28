@@ -68,26 +68,41 @@ async function main() {
   console.log(`Created ${users.length} users`);
 
   // Create venues
+  const venueOwners = users.filter(
+  (user) =>
+    user.role === UserRole.ADMIN ||
+    user.role === UserRole.ORGANIZER
+  );
+
+
   const venues = await Promise.all(
-    Array.from({ length: 3 }, () =>
-      prisma.venue.create({
+    Array.from({ length: 3 }, () => {
+      const user = faker.helpers.arrayElement(venueOwners);
+
+      return prisma.venue.create({
         data: {
           name: faker.company.name(),
           city: faker.location.city(),
           address: faker.location.streetAddress(),
+          userId: user.id,
         },
-      }),
-    ),
+      });
+    }),
   );
 
   console.log(`Created ${venues.length} venues`);
 
   // Create events
+  const eventOwners = users.filter(
+  (user) =>
+    user.role === UserRole.ADMIN ||
+    user.role === UserRole.ORGANIZER
+  );
   const events = [];
 
   for (let i = 0; i < 10; i++) {
     const venue = faker.helpers.arrayElement(venues);
-    const user = faker.helpers.arrayElement(users);
+    const user = faker.helpers.arrayElement(eventOwners);
 
     const event = await prisma.event.create({
       data: {

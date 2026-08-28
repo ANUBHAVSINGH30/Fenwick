@@ -27,6 +27,7 @@ model User {
   image         String?
 
   events Event[]
+  venues Venue[]
   bookings Booking[]
 
   createdAt DateTime @default(now())
@@ -43,11 +44,15 @@ model Venue {
   city    String
   address String
 
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+
   events Event[]
 
   createdAt DateTime @default(now())
 
   @@index([city])
+  @@index([userId])
 }
 
 model Event {
