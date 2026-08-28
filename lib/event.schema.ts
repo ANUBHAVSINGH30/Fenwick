@@ -15,6 +15,15 @@ export const venueSchema = z.object({
     address: z.string().min(1),
 });
 
+export const seatSchema = z.object({
+    row: z.string().min(1),
+    number: z.number().int().positive(),
+});
+
+export const createSeatsSchema = z.object({
+    seats: z.array(seatSchema).min(1),
+});
+
 export const updateEventSchema = eventSchema.partial();
 
 export type EventSchema = z.infer<typeof eventSchema>;
