@@ -3,7 +3,6 @@ import { PrismaClient } from "@/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { getCUrrentUser } from "../../../../lib/auth"; 
 import { createBookingSchema } from "../../../../lib/booking.schema";
-import { set } from "zod";
 
 const adapter = new PrismaPg({
     connectionString: process.env.DATABASE_URL,
@@ -140,12 +139,44 @@ export async function POST(req: NextRequest) {
     }catch(error){
         console.log("Create booking error: ",error);
 
-        return NextResponse.json(
-            {
-                success: false,
-                error: "Internal server error",
-            },
-            { status: 500 }
-        );
+        if (error instanceof Error) {
+        if (error.message === "SEAT_NOT_FOUND") {
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: "Seat not found",
+                },
+                { status: 404 }
+            );
+        }
+
+        if (error.message === "INVALID_SEAT_EVENT") {
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: "Seat does not belong to this event",
+                },
+                { status: 400 }
+            );
+        }
+
+        if (error.message === "SEAT_NOT_AVAILABLE") {
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: "Seat is not available",
+                },
+                { status: 409 }
+            );
+        }
+    }
+
+    return NextResponse.json(
+        {
+            success: false,
+            error: "Internal server error",
+        },
+        { status: 500 }
+    );
     }
 }
