@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import { PrismaClient } from "@/generated/prisma/client";
+import { Prisma, PrismaClient } from "@/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { getCUrrentUser } from "../../../../lib/auth"; 
 import { createBookingSchema } from "../../../../lib/booking.schema";
+import crypto from "crypto";
+import { acquireSeatLock, releaseSeatLock } from "../../../../lib/lock";
 
 const adapter = new PrismaPg({
     connectionString: process.env.DATABASE_URL,
@@ -13,6 +15,7 @@ const prisma = new PrismaClient({
 });
 
 export async function POST(req: NextRequest) {
+
     try{
         //1. Authenticate user
         const user = await getCUrrentUser(req);
@@ -85,24 +88,39 @@ export async function POST(req: NextRequest) {
             );
         }
 
+        const lockToken = crypto.randomUUID();
+
+        const lockAcquired = await acquireSeatLock(seatId, lockToken);
+
+        if (!lockAcquired) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: "Seat is currently being booked",
+                },
+                { status: 409 }
+            );
+        }
+
         //8.Create booking 
-        const booking = await prisma.$transaction(async (tx) => {
+        try {
+            const booking = await prisma.$transaction(async (tx) => {
             const currentSeat = await tx.seat.findUnique({
                 where: {
                     id: seatId,
                 },
             });
 
-            if(!currentSeat){
-                throw new Error("Seat not found");
+            if (!currentSeat) {
+                throw new Error("SEAT_NOT_FOUND");
             }
 
-            if(currentSeat.eventId !== eventId){
-                throw new Error("Seat does not belong to this event");
+            if (currentSeat.eventId !== eventId) {
+                throw new Error("INVALID_SEAT_EVENT");
             }
 
-            if(currentSeat.status !== "AVAILABLE"){
-                throw new Error ("Seat is not Available");
+            if (currentSeat.status !== "AVAILABLE") {
+                throw new Error("SEAT_NOT_AVAILABLE");
             }
 
             const newBooking = await tx.booking.create({
@@ -125,7 +143,7 @@ export async function POST(req: NextRequest) {
             });
 
             return newBooking;
-        })
+        });
 
         return NextResponse.json(
             {
@@ -136,6 +154,9 @@ export async function POST(req: NextRequest) {
             { status: 201 }
         );
 
+        } finally {
+            await releaseSeatLock(seatId, lockToken);
+        }
     }catch(error){
         console.log("Create booking error: ",error);
 
@@ -171,12 +192,26 @@ export async function POST(req: NextRequest) {
         }
     }
 
+    if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === "P2002"
+    ) {
+        return NextResponse.json(
+            {
+                success: false,
+                error: "Seat is no longer available",
+            },
+            { status: 409 }
+        );
+    }
+
     return NextResponse.json(
         {
             success: false,
             error: "Internal server error",
         },
         { status: 500 }
-    );
-    }
+    )
+}
+
 }
