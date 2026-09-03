@@ -157,61 +157,61 @@ export async function POST(req: NextRequest) {
         } finally {
             await releaseSeatLock(seatId, lockToken);
         }
-    }catch(error){
-        console.log("Create booking error: ",error);
+        }catch(error){
+            console.log("Create booking error: ",error);
 
-        if (error instanceof Error) {
-        if (error.message === "SEAT_NOT_FOUND") {
+            if (error instanceof Error) {
+                if (error.message === "SEAT_NOT_FOUND") {
+                    return NextResponse.json(
+                        {
+                            success: false,
+                            error: "Seat not found",
+                        },
+                        { status: 404 }
+                    );
+                }
+
+                if (error.message === "INVALID_SEAT_EVENT") {
+                    return NextResponse.json(
+                        {
+                            success: false,
+                            error: "Seat does not belong to this event",
+                        },
+                        { status: 400 }
+                    );
+                }
+
+                if (error.message === "SEAT_NOT_AVAILABLE") {
+                    return NextResponse.json(
+                        {
+                            success: false,
+                            error: "Seat is not available",
+                        },
+                        { status: 409 }
+                    );
+                }
+            }
+
+        if (
+            error instanceof Prisma.PrismaClientKnownRequestError &&
+            error.code === "P2002"
+        ) {
             return NextResponse.json(
                 {
                     success: false,
-                    error: "Seat not found",
-                },
-                { status: 404 }
-            );
-        }
-
-        if (error.message === "INVALID_SEAT_EVENT") {
-            return NextResponse.json(
-                {
-                    success: false,
-                    error: "Seat does not belong to this event",
-                },
-                { status: 400 }
-            );
-        }
-
-        if (error.message === "SEAT_NOT_AVAILABLE") {
-            return NextResponse.json(
-                {
-                    success: false,
-                    error: "Seat is not available",
+                    error: "Seat is no longer available",
                 },
                 { status: 409 }
             );
         }
-    }
 
-    if (
-        error instanceof Prisma.PrismaClientKnownRequestError &&
-        error.code === "P2002"
-    ) {
         return NextResponse.json(
             {
                 success: false,
-                error: "Seat is no longer available",
+                error: "Internal server error",
             },
-            { status: 409 }
-        );
+            { status: 500 }
+        )
     }
-
-    return NextResponse.json(
-        {
-            success: false,
-            error: "Internal server error",
-        },
-        { status: 500 }
-    )
-}
 
 }
