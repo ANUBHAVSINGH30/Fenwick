@@ -51,21 +51,47 @@ export async function POST(req: NextRequest) {
             },
         });
 
-        if(existingIdempotentKey?.bookingId){
-            const existingBooking = await prisma.booking.findUnique({
-                where: {
-                    id: existingIdempotentKey.bookingId,
-                },
-            });
+        if (existingIdempotentKey) {
+            if (
+                existingIdempotentKey.status === "COMPLETED" &&
+                existingIdempotentKey.bookingId
+            ) {
+                const existingBooking = await prisma.booking.findUnique({
+                    where: {
+                        id: existingIdempotentKey.bookingId,
+                    },
+                });
 
-            if(existingBooking){
-                return NextResponse.json({
-                    success: true,
-                    data: existingBooking,
-                    message: "Booking already processed",
-                }, {status: 200})
+                if (existingBooking) {
+                    return NextResponse.json(
+                        {
+                            success: true,
+                            data: existingBooking,
+                            message: "Booking already processed",
+                        },
+                        { status: 200 }
+                    );
+                }
+            }
+
+            if (existingIdempotentKey.status === "PROCESSING") {
+                return NextResponse.json(
+                    {
+                        success: false,
+                        error: "Request with this Idempotency-Key is already being processed",
+                    },
+                    { status: 409 }
+                );
             }
         }
+
+        const idempotencyClaim = await prisma.idempotencyKey.create({
+            data: {
+                userId: user.id,
+                key: idempotencyKey,
+                status: "PROCESSING",
+            },
+        });
 
         //2. Read request body
         const body = await req.json();
@@ -161,13 +187,6 @@ export async function POST(req: NextRequest) {
                 throw new Error("SEAT_NOT_AVAILABLE");
             }
 
-            const newIdempotencyKey = await tx.idempotencyKey.create({
-                data: {
-                    userId: user.id,
-                    key: idempotencyKey,
-                },
-            });
-
             const newBooking = await tx.booking.create({
                 data: {
                     userId: user.id,
@@ -180,10 +199,11 @@ export async function POST(req: NextRequest) {
 
             await tx.idempotencyKey.update({
                 where : {
-                    id: newIdempotencyKey.id,
+                    id: idempotencyClaim.id,
                 },
                 data: {
-                    bookingId: newBooking.id
+                    bookingId: newBooking.id,
+                    status: "COMPLETED"
                 }
             })
 

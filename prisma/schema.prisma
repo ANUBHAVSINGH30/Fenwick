@@ -26,13 +26,12 @@ model User {
   emailVerified DateTime?
   image         String?
 
-  events Event[]
-  venues Venue[]
+  events   Event[]
+  venues   Venue[]
   bookings Booking[]
 
   createdAt DateTime @default(now())
 }
-
 
 // =========================
 // CORE DOMAIN
@@ -44,8 +43,8 @@ model Venue {
   city    String
   address String
 
-  userId    String
-  user      User     @relation(fields: [userId], references: [id])
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
 
   events Event[]
 
@@ -63,11 +62,11 @@ model Event {
   date        DateTime
   price       Decimal  @db.Decimal(10, 2)
 
-  userId      String
-  user        User @relation(fields: [userId], references: [id])
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
 
   venueId String
-  venue   Venue @relation(fields: [venueId], references: [id])
+  venue   Venue  @relation(fields: [venueId], references: [id])
 
   seats    Seat[]
   bookings Booking[]
@@ -88,9 +87,9 @@ model Seat {
   status SeatStatus @default(AVAILABLE)
 
   eventId String
-  event   Event @relation(fields: [eventId], references: [id])
+  event   Event  @relation(fields: [eventId], references: [id])
 
-  booking Booking?
+  booking Booking[]
 
   @@unique([eventId, row, number])
   @@index([eventId, status])
@@ -105,15 +104,15 @@ model Booking {
   status BookingStatus @default(PENDING)
 
   userId String
-  user   User @relation(fields: [userId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
 
   eventId String
-  event   Event @relation(fields: [eventId], references: [id])
+  event   Event  @relation(fields: [eventId], references: [id])
 
-  seatId String @unique
-  seat   Seat @relation(fields: [seatId], references: [id])
+  seatId String
+  seat   Seat   @relation(fields: [seatId], references: [id])
 
-  createdAt DateTime @default(now())
+  createdAt DateTime  @default(now())
   expiresAt DateTime?
 
   idempotencyKey IdempotencyKey?
@@ -124,12 +123,13 @@ model Booking {
 }
 
 model IdempotencyKey {
-  id        String   @id @default(cuid())
+  id        String            @id @default(cuid())
   key       String
   userId    String
-  bookingId String?   @unique
-  booking   Booking?  @relation(fields: [bookingId], references: [id])
-  createdAt DateTime @default(now())
+  bookingId String?           @unique
+  booking   Booking?          @relation(fields: [bookingId], references: [id])
+  createdAt DateTime          @default(now())
+  status    IdempotencyStatus @default(PROCESSING)
 
   @@unique([userId, key])
   @@index([createdAt])
@@ -149,4 +149,9 @@ enum BookingStatus {
   CONFIRMED
   CANCELLED
   EXPIRED
+}
+
+enum IdempotencyStatus {
+  PROCESSING
+  COMPLETED
 }

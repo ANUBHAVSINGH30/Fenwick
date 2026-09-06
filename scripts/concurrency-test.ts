@@ -1,8 +1,8 @@
 import crypto from "crypto";
-const idempotencyKey = crypto.randomUUID();
+const idempotencyKey = "test-idempotency-125";
 
 const eventId = "cmtag8wit0008sixdnhs9wu14";
-const seatId = "cmtag8wjy000isixdfflvygwp";
+const seatId = "cmtag8wjy000ksixd9sy53ywt";
 
 const sessionId = "f2f6dad1-0919-4e97-955b-df33d5273502";
 
@@ -42,7 +42,7 @@ async function makeBookingRequest(requestNumber: number) {
 }
 
 async function main() {
-    console.log("Starting concurrency test...");
+    console.log("Starting concurrent idempotency test...");
 
     const requests = Array.from(
         { length: 10 },
@@ -64,8 +64,13 @@ async function main() {
         (result) => result.status === 201
     );
 
+    const replayed = results.filter(
+        (result) => result.status === 200
+    );
+
     console.log("\n-------------------------");
-    console.log(`Successful bookings: ${successful.length}`);
+    console.log(`Created: ${successful.length}`);
+    console.log(`Replayed: ${replayed.length}`);
     console.log("-------------------------");
 }
 
