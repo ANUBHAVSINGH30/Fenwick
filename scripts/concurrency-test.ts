@@ -1,7 +1,10 @@
-const eventId = "cmtag8wit0008sixdnhs9wu14";
-const seatId = "cmtag8wjy000msixdqt2s9f52";
+import crypto from "crypto";
+const idempotencyKey = crypto.randomUUID();
 
-const sessionId = "52d53a17-42f4-4a81-8919-506f94037896";
+const eventId = "cmtag8wit0008sixdnhs9wu14";
+const seatId = "cmtag8wjy000isixdfflvygwp";
+
+const sessionId = "f2f6dad1-0919-4e97-955b-df33d5273502";
 
 const url = "http://localhost:3000/api/bookings";
 
@@ -11,6 +14,7 @@ async function makeBookingRequest(requestNumber: number) {
         headers: {
             "Content-Type": "application/json",
             "Cookie": `sessionId=${sessionId}`,
+            "Idempotency-Key": idempotencyKey,
         },
         body: JSON.stringify({
             eventId,

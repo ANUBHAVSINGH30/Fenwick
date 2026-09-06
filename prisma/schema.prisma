@@ -116,9 +116,23 @@ model Booking {
   createdAt DateTime @default(now())
   expiresAt DateTime?
 
+  idempotencyKey IdempotencyKey?
+
   @@index([userId, createdAt])
   @@index([eventId])
   @@index([status])
+}
+
+model IdempotencyKey {
+  id        String   @id @default(cuid())
+  key       String
+  userId    String
+  bookingId String?   @unique
+  booking   Booking?  @relation(fields: [bookingId], references: [id])
+  createdAt DateTime @default(now())
+
+  @@unique([userId, key])
+  @@index([createdAt])
 }
 
 // =========================

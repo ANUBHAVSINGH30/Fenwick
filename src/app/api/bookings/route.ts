@@ -30,6 +30,43 @@ export async function POST(req: NextRequest) {
             );
         }
 
+        const idempotencyKey = req.headers.get("Idempotency-Key");
+
+        if (!idempotencyKey) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: "Idempotency-Key header is required",
+                },
+                { status: 400 }
+            );
+        }
+
+        const existingIdempotentKey = await prisma.idempotencyKey.findUnique({
+            where: {
+                userId_key: {
+                    userId: user.id,
+                    key: idempotencyKey,
+                },
+            },
+        });
+
+        if(existingIdempotentKey?.bookingId){
+            const existingBooking = await prisma.booking.findUnique({
+                where: {
+                    id: existingIdempotentKey.bookingId,
+                },
+            });
+
+            if(existingBooking){
+                return NextResponse.json({
+                    success: true,
+                    data: existingBooking,
+                    message: "Booking already processed",
+                }, {status: 200})
+            }
+        }
+
         //2. Read request body
         const body = await req.json();
 
@@ -88,6 +125,7 @@ export async function POST(req: NextRequest) {
             );
         }
 
+
         const lockToken = crypto.randomUUID();
 
         const lockAcquired = await acquireSeatLock(seatId, lockToken);
@@ -123,6 +161,13 @@ export async function POST(req: NextRequest) {
                 throw new Error("SEAT_NOT_AVAILABLE");
             }
 
+            const newIdempotencyKey = await tx.idempotencyKey.create({
+                data: {
+                    userId: user.id,
+                    key: idempotencyKey,
+                },
+            });
+
             const newBooking = await tx.booking.create({
                 data: {
                     userId: user.id,
@@ -132,6 +177,15 @@ export async function POST(req: NextRequest) {
                     expiresAt: new Date(Date.now() + 10 * 60 * 1000),
                 },
             });
+
+            await tx.idempotencyKey.update({
+                where : {
+                    id: newIdempotencyKey.id,
+                },
+                data: {
+                    bookingId: newBooking.id
+                }
+            })
 
             await tx.seat.update({
                 where: {
@@ -144,6 +198,7 @@ export async function POST(req: NextRequest) {
 
             return newBooking;
         });
+
 
         return NextResponse.json(
             {
@@ -196,10 +251,12 @@ export async function POST(req: NextRequest) {
             error instanceof Prisma.PrismaClientKnownRequestError &&
             error.code === "P2002"
         ) {
+            console.log("P2002 details:", error);
+
             return NextResponse.json(
                 {
                     success: false,
-                    error: "Seat is no longer available",
+                    error: "Unique constraint violation",
                 },
                 { status: 409 }
             );
