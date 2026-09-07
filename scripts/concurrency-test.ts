@@ -1,10 +1,10 @@
 import crypto from "crypto";
-const idempotencyKey = "test-idempotency-125";
+const idempotencyKey = "test-idempotency-128";
 
 const eventId = "cmtag8wit0008sixdnhs9wu14";
-const seatId = "cmtag8wjy000ksixd9sy53ywt";
+const seatId = "cmtag8wjy000nsixd8owhoj17";
 
-const sessionId = "f2f6dad1-0919-4e97-955b-df33d5273502";
+const sessionId = "ece8b3b8-cf1a-496f-830d-12eb70005be6";
 
 const url = "http://localhost:3000/api/bookings";
 

@@ -17,7 +17,7 @@ interface EventProps {
     params: Promise<{id: string}>;
 }
 
-export async function GET(res:NextResponse, {params}: EventProps) {
+export async function GET(req: NextRequest, {params}: EventProps) {
     try{
         const {id} = await params;
 

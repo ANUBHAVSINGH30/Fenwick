@@ -25,7 +25,7 @@ interface CreateEventBody {
 
 
 //GET events
-export async function GET(res: NextResponse,) {
+export async function GET(req: NextRequest,) {
     try{
 
         const Events = await prisma.event.findMany({
