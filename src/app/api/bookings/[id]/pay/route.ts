@@ -84,8 +84,9 @@ export async function POST(req: NextRequest, {params}: {params: Promise< {id: st
             );
         }
 
-        const result = prisma.$transaction(async (tx) => {
+        const result = await prisma.$transaction(async (tx) => {
             const updatedBooking = await tx.booking.updateMany({
+                
                 where: {
                     id: bookingId,
                     status: BookingStatus.PENDING,
@@ -100,28 +101,34 @@ export async function POST(req: NextRequest, {params}: {params: Promise< {id: st
                             : BookingStatus.CANCELLED,
                 },
             });
+            console.log("Payment update count:", updatedBooking.count);
 
             if (updatedBooking.count === 0) {
-                throw new Error("BOOKING_ALREADY_HANDLED");
+                return null;
             }
 
             if (validateData.result === "FAILED") {
                 await tx.seat.update({
-                    where: {
-                        id: booking.seatId,
-                    },
-                    data: {
-                        status: "AVAILABLE",
-                    },
+                    where: { id: booking.seatId },
+                    data: { status: "AVAILABLE" },
                 });
             }
 
             return await tx.booking.findUnique({
-                where: {
-                    id: bookingId,
-                },
+                where: { id: bookingId },
             });
         });
+
+        if (!result) {
+            return NextResponse.json(
+                {
+                    success: false,
+                    error: "Booking has already been handled",
+                },
+                { status: 409 }
+            );
+        }
+
 
         return NextResponse.json({
             success: true,
